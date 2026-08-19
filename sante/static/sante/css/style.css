@@ -1,0 +1,63 @@
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+main {
+    min-height: calc(100vh - 110px);
+}
+
+.sidebar {
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+}
+
+.map-container {
+    height: calc(100vh - 110px);
+    width: 100%;
+}
+
+.legende-liste li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+}
+
+.pastille {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.2);
+}
+
+.trait {
+    display: inline-block;
+    width: 22px;
+    height: 0;
+}
+
+/* Popups Leaflet */
+.leaflet-popup-content h6 {
+    margin-bottom: 4px;
+}
+
+.popup-btn {
+    margin-top: 6px;
+}
+
+/* Responsive : sidebar passe au-dessus de la carte sur mobile */
+@media (max-width: 767.98px) {
+    .sidebar {
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .map-container {
+        height: 60vh;
+    }
+}

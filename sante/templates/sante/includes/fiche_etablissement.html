@@ -1,0 +1,44 @@
+<!-- Offcanvas Bootstrap 5 : fiche d'information d'un établissement -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="ficheEtablissement">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="ficheNom">Établissement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <span id="ficheType" class="badge bg-primary mb-2"></span>
+        <span id="ficheStatut" class="badge bg-secondary mb-2"></span>
+
+        <table class="table table-sm">
+            <tbody>
+                <tr>
+                    <th scope="row"><i class="bi bi-diagram-3"></i> Secteur</th>
+                    <td id="ficheSecteur"></td>
+                </tr>
+                <tr>
+                    <th scope="row"><i class="bi bi-telephone"></i> Contact</th>
+                    <td id="ficheContact"></td>
+                </tr>
+                <tr>
+                    <th scope="row"><i class="bi bi-people"></i> Capacité</th>
+                    <td id="ficheCapacite"></td>
+                </tr>
+                <tr>
+                    <th scope="row"><i class="bi bi-geo-alt"></i> Quartier</th>
+                    <td id="ficheQuartier"></td>
+                </tr>
+                <tr>
+                    <th scope="row"><i class="bi bi-signpost"></i> Adresse</th>
+                    <td id="ficheAdresse"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div id="ficheDescription" class="mb-3 text-muted small"></div>
+
+        <div class="d-grid gap-2">
+            <a id="ficheItineraire" href="#" target="_blank" class="btn btn-primary btn-sm">
+                <i class="bi bi-signpost-2"></i> Itinéraire vers cet établissement
+            </a>
+        </div>
+    </div>
+</div>

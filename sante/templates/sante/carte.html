@@ -1,0 +1,79 @@
+{% extends "sante/base.html" %}
+{% load static %}
+
+{% block title %}Carte interactive des établissements de santé{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+
+        <!-- Colonne latérale : filtres + légende -->
+        <div class="col-lg-3 col-md-4 sidebar p-3">
+            {% include "sante/includes/filtres.html" %}
+            <hr>
+            {% include "sante/includes/legende.html" %}
+        </div>
+
+        <!-- Colonne carte -->
+        <div class="col-lg-9 col-md-8 p-0">
+            <div id="carte" class="map-container"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Panneau latéral / modal pour la fiche établissement -->
+{% include "sante/includes/fiche_etablissement.html" %}
+
+<!-- Modal de contribution citoyenne -->
+<div class="modal fade" id="modalContribution" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-flag"></i> Signaler un établissement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formContribution" method="post" action="{% url 'sante:contribution' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nom de l'établissement</label>
+                        <input type="text" name="nom" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select name="type" class="form-select">
+                            <option value="poste_sante">Poste de santé</option>
+                            <option value="centre_sante">Centre de santé</option>
+                            <option value="hopital">Hôpital</option>
+                            <option value="clinique">Clinique</option>
+                            <option value="pharmacie">Pharmacie</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description / remarque</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <input type="hidden" name="latitude" id="idLatitude">
+                    <input type="hidden" name="longitude" id="idLongitude">
+                    <div class="form-text">Cliquez sur la carte pour positionner le point, puis remplissez le formulaire.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Envoyer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // URLs des vues fournies par Personne 3 (à ajuster selon urls.py)
+    const URL_ETABLISSEMENTS_GEOJSON = "{% url 'sante:etablissements-geojson' %}";
+    const URL_QUARTIERS_GEOJSON = "{% url 'sante:quartiers-geojson' %}";
+    const URL_COMMUNE_GEOJSON = "{% url 'sante:commune-geojson' %}";
+</script>
+<script src="{% static 'sante/js/carte.js' %}"></script>
+{% endblock %}
