@@ -13,6 +13,13 @@ import os
 import dj_database_url
 from pathlib import Path
 
+if os.name == 'nt':
+    os.environ['PATH'] = r'C:\OSGeo4W\bin' + os.pathsep + os.environ['PATH']
+    GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal313.dll'
+    GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
+    os.environ['PROJ_LIB'] = r'C:\OSGeo4W\share\proj'
+    os.environ['GDAL_DATA'] = r'C:\OSGeo4W\share\gdal'
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -142,12 +149,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # 1. Ajout de OSGeo4W au PATH Windows
-os.environ['PATH'] = r'C:\OSGeo4W\bin' + os.pathsep + os.environ['PATH']
 
 # 2. Chemins vers les DLLs
-GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal313.dll'
-GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
+
 
 # 3. Chemins vers les données de projection (INDISPENSABLE pour la conversion 32628 -> 4326)
-os.environ['PROJ_LIB'] = r'C:\OSGeo4W\share\proj'
-os.environ['GDAL_DATA'] = r'C:\OSGeo4W\share\gdal'
+
