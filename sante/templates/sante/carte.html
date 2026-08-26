@@ -1,0 +1,535 @@
+{% extends "sante/base.html" %}
+{% block title %}Carte — Carte Sanitaire Grand Yoff{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --teal-deep: #0B4F6C;
+        --teal-soft: #7FC8D9;
+        --coral: #FF6B5B;
+        --bg-soft: #EEF3F6;
+    }
+    body { background: var(--bg-soft); }
+
+    .side-panel {
+        background: white;
+        border: 1px solid #e3ebee;
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(11,79,108,0.06);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .side-panel h6 { font-weight: 700; margin-bottom: 0.9rem; font-size: 0.9rem; color: #1E2A30; }
+
+    .legend-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.4rem 0.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.88rem;
+    }
+    .legend-row:hover { background: #f3f8f9; }
+    .legend-row.disabled { opacity: 0.35; }
+    .legend-left { display: flex; align-items: center; gap: 0.5rem; }
+    .legend-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .legend-count { font-weight: 600; color: #5b6b70; font-size: 0.82rem; }
+
+    .btn-group-toggle .btn { font-size: 0.82rem; }
+    .btn-toggle-active { background: var(--teal-deep) !important; color: white !important; border-color: var(--teal-deep) !important; }
+    .btn-turquoise {
+    background: #17A2B8;
+    color: white;
+    border: none;
+    font-weight: 600;
+}
+    .btn-turquoise:hover {
+    background: #148a9c;
+    color: white;
+}
+
+    #map { height: 78vh; border-radius: 14px; overflow: hidden; }
+
+    .form-check-label { font-size: 0.88rem; }
+
+    .repartition-row { margin-bottom: 0.7rem; }
+    .repartition-row .label-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem; }
+    .repartition-bar-bg { background: #eef2f3; border-radius: 6px; height: 6px; overflow: hidden; }
+    .repartition-bar-fill { height: 100%; border-radius: 6px; }
+
+    .access-row { display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #f0f3f4; font-size: 0.85rem; }
+    .access-row:last-child { border-bottom: none; }
+    .access-value { font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid pt-3 pb-2" style="background: white; border-bottom: 1px solid #e3ebee;">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div class="btn-group btn-group-sm" id="fond-group">
+            <button type="button" class="btn btn-outline-secondary btn-toggle-active" data-fond="osm">OpenStreetMap</button>
+            <button type="button" class="btn btn-outline-secondary" data-fond="satellite">Satellite</button>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{% url 'etablissements_geojson' %}" class="btn btn-outline-primary btn-sm" download="etablissements_grand_yoff.geojson">
+                Export GeoJSON
+            </a>
+            <button type="button" id="btn-plus-proche" class="btn btn-turquoise btn-sm">
+                Établissement le plus proche
+            </button>
+        </div>
+    </div>
+    <div id="proche-status" class="small text-muted mt-1"></div>
+</div>
+<div class="container-fluid my-3">
+    <div class="row g-3">
+        <!-- PANNEAU GAUCHE -->
+        <div class="col-12 col-lg-3">
+
+            <div class="side-panel">
+                <h6>Recherche</h6>
+                <input type="text" id="recherche" class="form-control form-control-sm" placeholder="Nom d'un établissement...">
+            </div>
+
+            <div class="side-panel">
+                <h6>Légende / type d'établissement</h6>
+                <div id="legende"></div>
+            </div>
+
+            <div class="side-panel">
+                <h6>Secteur <span class="text-muted fw-normal" style="font-size:0.72rem;">(estimation par type)</span></h6>
+                <div class="btn-group btn-group-sm w-100 btn-group-toggle" role="group" id="secteur-group">
+                    <button type="button" class="btn btn-outline-secondary btn-toggle-active" data-secteur="tous">Tous</button>
+                    <button type="button" class="btn btn-outline-secondary" data-secteur="public">Public</button>
+                    <button type="button" class="btn btn-outline-secondary" data-secteur="prive">Privé</button>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <h6>Quartier</h6>
+                <select id="filtre-quartier" class="form-select form-select-sm">
+                    <option value="">Tous les quartiers</option>
+                </select>
+            </div>
+
+            <div class="side-panel">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Limites administratives</h6>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggle-quartiers">
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-0">
+                    <h6 class="mb-0">Indicateur d'accessibilité</h6>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggle-accessibilite">
+                    </div>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <h6>Zones de desserte (buffer)</h6>
+                <div class="btn-group btn-group-sm w-100 btn-group-toggle" id="buffer-group">
+                    <button type="button" class="btn btn-outline-secondary btn-toggle-active" data-buffer="0">Aucun</button>
+                    <button type="button" class="btn btn-outline-secondary" data-buffer="500">0.5 km</button>
+                    <button type="button" class="btn btn-outline-secondary" data-buffer="1000">1 km</button>
+                    <button type="button" class="btn btn-outline-secondary" data-buffer="2000">2 km</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CARTE -->
+        <div class="col-12 col-lg-6">
+            <div id="map"></div>
+        </div>
+
+        <!-- PANNEAU DROIT -->
+        <div class="col-12 col-lg-3">
+            <div class="side-panel">
+                <h6>Fiche d'information</h6>
+                <div id="fiche-vide" class="text-muted small">Cliquez sur un établissement de la carte pour voir sa fiche ici.</div>
+                <div id="fiche-contenu" class="d-none">
+                    <span class="badge mb-2" id="fiche-badge"></span>
+                    <h6 class="fw-bold mb-2" id="fiche-nom"></h6>
+                    <div class="small text-muted">Quartier</div>
+                    <div class="mb-2" id="fiche-quartier"></div>
+                    <div class="small text-muted">Type</div>
+                    <div id="fiche-type"></div>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <h6>Répartition par type</h6>
+                <div id="repartition-list"></div>
+            </div>
+
+            <div class="side-panel mb-0">
+                <h6>Accessibilité : habitants / structure</h6>
+                <div id="accessibilite-list" style="max-height: 260px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const map = L.map('map').setView([14.735, -17.455], 14);
+
+    const coucheOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const coucheSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri'
+    });
+
+    const couleurs = {
+        'Poste de santé': '#3498db',
+        'Centre de santé': '#2ecc71',
+        'Hôpital public': '#e74c3c',
+        'Centre médico social': '#e67e22',
+        'Pharmacie': '#8e44ad',
+        'Clinique': '#c0392b'
+    };
+
+    // Estimation secteur (pas une vraie donnée vérifiée, approximation par type)
+    const secteurParType = {
+        'Poste de santé': 'public', 'Centre de santé': 'public', 'Hôpital public': 'public',
+        'Centre médico social': 'prive', 'Pharmacie': 'prive', 'Clinique': 'prive'
+    };
+
+    let coucheEtablissements = L.layerGroup().addTo(map);
+    let coucheQuartiers;
+    let coucheBuffers = L.layerGroup().addTo(map);
+    let toutesLesFeatures = [];
+    let secteurActif = 'tous';
+    let bufferActif = 0;
+
+    // Construction légende (une fois)
+    const legendeEl = document.getElementById('legende');
+    Object.entries(couleurs).forEach(([type, couleur]) => {
+        legendeEl.innerHTML += `
+            <div class="legend-row" data-type="${type}">
+                <div class="legend-left">
+                    <span class="legend-dot" style="background:${couleur};"></span>
+                    <span>${type}</span>
+                </div>
+                <span class="legend-count" data-count-for="${type}">0</span>
+            </div>`;
+    });
+
+    const typesDesactives = new Set();
+
+    function afficherEtablissements() {
+        const recherche = document.getElementById('recherche').value.toLowerCase();
+        const quartierChoisi = document.getElementById('filtre-quartier').value;
+
+        coucheEtablissements.clearLayers();
+        coucheBuffers.clearLayers();
+
+        const compteurs = {};
+        Object.keys(couleurs).forEach(t => compteurs[t] = 0);
+
+        const featuresAffichees = toutesLesFeatures.filter(f => {
+            const p = f.properties;
+            if (typesDesactives.has(p.amenity)) return false;
+            if (secteurActif !== 'tous' && secteurParType[p.amenity] !== secteurActif) return false;
+            if (quartierChoisi && p.quartier !== quartierChoisi) return false;
+            if (recherche && !(p.name || '').toLowerCase().includes(recherche)) return false;
+            return true;
+        });
+
+        featuresAffichees.forEach(f => {
+            if (compteurs[f.properties.amenity] !== undefined) compteurs[f.properties.amenity]++;
+        });
+        Object.entries(compteurs).forEach(([type, n]) => {
+            const el = document.querySelector(`[data-count-for="${type}"]`);
+            if (el) el.textContent = n;
+        });
+
+        L.geoJSON({ type: 'FeatureCollection', features: featuresAffichees }, {
+            pointToLayer: function (feature, latlng) {
+                return L.circleMarker(latlng, {
+                    radius: 7,
+                    fillColor: couleurs[feature.properties.amenity] || 'gray',
+                    color: '#000', weight: 1, fillOpacity: 0.85
+                });
+            },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup(
+                    `<strong>${feature.properties.name}</strong><br>` +
+                    `Type: ${feature.properties.amenity}<br>` +
+                    `Quartier: ${feature.properties.quartier}`
+                );
+                layer.on('click', function () {
+                    afficherFiche(feature.properties);
+                });
+                if (bufferActif > 0) {
+                    L.circle(layer.getLatLng(), {
+                        radius: bufferActif,
+                        color: couleurs[feature.properties.amenity] || 'gray',
+                        weight: 1, fillOpacity: 0.05, opacity: 0.35
+                    }).addTo(coucheBuffers);
+                }
+            }
+        }).addTo(coucheEtablissements);
+    }
+
+        // Distance à vol d'oiseau (formule de Haversine, résultat en km)
+    function distanceKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    document.getElementById('btn-plus-proche').addEventListener('click', function () {
+        const statusEl = document.getElementById('proche-status');
+
+        if (!navigator.geolocation) {
+            statusEl.textContent = "Géolocalisation non supportée par votre navigateur.";
+            return;
+        }
+
+        statusEl.textContent = "Localisation en cours...";
+
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                const userLat = position.coords.latitude;
+                const userLon = position.coords.longitude;
+
+                if (toutesLesFeatures.length === 0) {
+                    statusEl.textContent = "Données non chargées, réessayez.";
+                    return;
+                }
+
+                let plusProche = null;
+                let distanceMin = Infinity;
+
+                toutesLesFeatures.forEach(f => {
+                    const [lon, lat] = f.geometry.coordinates;
+                    const d = distanceKm(userLat, userLon, lat, lon);
+                    if (d < distanceMin) { distanceMin = d; plusProche = f; }
+                });
+
+                if (plusProche) {
+                    const [lon, lat] = plusProche.geometry.coordinates;
+                    map.setView([lat, lon], 16);
+                    L.popup()
+                        .setLatLng([lat, lon])
+                        .setContent(`<strong>${plusProche.properties.name}</strong><br>À environ ${distanceMin.toFixed(2)} km`)
+                        .openOn(map);
+                    afficherFiche(plusProche.properties);
+                    statusEl.textContent = `Établissement le plus proche : ${plusProche.properties.name} (${distanceMin.toFixed(2)} km à vol d'oiseau)`;
+                }
+            },
+            function () {
+                statusEl.textContent = "Localisation refusée ou indisponible.";
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+
+    function chargerEtablissements() {
+        fetch("{% url 'etablissements_geojson' %}")
+            .then(r => r.json())
+            .then(data => {
+                toutesLesFeatures = data.features;
+                afficherEtablissements();
+            });
+    }
+
+    function chargerQuartiersDropdown() {
+        fetch("{% url 'quartiers_geojson' %}")
+            .then(r => r.json())
+            .then(data => {
+                const noms = [...new Set(data.features.map(f => f.properties.qrt_vlg_ha).filter(Boolean))].sort();
+                const select = document.getElementById('filtre-quartier');
+                noms.forEach(nom => {
+                    const opt = document.createElement('option');
+                    opt.value = nom;
+                    opt.textContent = nom;
+                    select.appendChild(opt);
+                });
+            });
+    }
+
+        // --- Fiche d'information au clic ---
+    function afficherFiche(props) {
+        document.getElementById('fiche-vide').classList.add('d-none');
+        document.getElementById('fiche-contenu').classList.remove('d-none');
+        document.getElementById('fiche-nom').textContent = props.name || 'Sans nom';
+        document.getElementById('fiche-quartier').textContent = props.quartier || 'Non renseigné';
+        document.getElementById('fiche-type').textContent = props.amenity || 'Non renseigné';
+        const badge = document.getElementById('fiche-badge');
+        badge.textContent = props.amenity;
+        badge.style.background = couleurs[props.amenity] || '#999';
+        badge.style.color = 'white';
+    }
+
+    // --- Répartition par type (recalculée à chaque affichage) ---
+    function afficherRepartition() {
+        const compteurs = {};
+        Object.keys(couleurs).forEach(t => compteurs[t] = 0);
+        toutesLesFeatures.forEach(f => {
+            if (compteurs[f.properties.amenity] !== undefined) compteurs[f.properties.amenity]++;
+        });
+        const total = Object.values(compteurs).reduce((a, b) => a + b, 0) || 1;
+
+        const el = document.getElementById('repartition-list');
+        el.innerHTML = '';
+        Object.entries(compteurs).forEach(([type, n]) => {
+            const pct = Math.round((n / total) * 100);
+            el.innerHTML += `
+                <div class="repartition-row">
+                    <div class="label-row"><span>${type}</span><span>${n}</span></div>
+                    <div class="repartition-bar-bg">
+                        <div class="repartition-bar-fill" style="width:${pct}%; background:${couleurs[type]};"></div>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function afficherLimitesAdministratives(actif) {
+        if (actif) {
+            if (!coucheQuartiers) {
+                fetch("{% url 'quartiers_geojson' %}")
+                    .then(r => r.json())
+                    .then(data => {
+                        coucheQuartiers = L.geoJSON(data, {
+                            style: { color: '#0B4F6C', weight: 1, fillOpacity: 0 }
+                        }).addTo(map);
+                    });
+            } else {
+                coucheQuartiers.addTo(map);
+            }
+        } else if (coucheQuartiers) {
+            map.removeLayer(coucheQuartiers);
+        }
+    }
+
+    function couleurAccessibilite(ratio) {
+        if (ratio === null) return '#cccccc';
+        if (ratio < 500) return '#2ecc71';
+        if (ratio < 1500) return '#f1c40f';
+        if (ratio < 3000) return '#e67e22';
+        return '#e74c3c';
+    }
+
+    let coucheAccessibilite;
+    function afficherAccessibilite(actif) {
+        if (!actif) {
+            if (coucheAccessibilite) map.removeLayer(coucheAccessibilite);
+            return;
+        }
+        fetch("{% url 'quartiers_geojson' %}")
+            .then(r => r.json())
+            .then(data => {
+                if (coucheAccessibilite) map.removeLayer(coucheAccessibilite);
+                coucheAccessibilite = L.geoJSON(data, {
+                    style: function (feature) {
+                        const nomQuartier = feature.properties.qrt_vlg_ha;
+                        const population = feature.properties.population;
+                        const nb = toutesLesFeatures.filter(e => e.properties.quartier === nomQuartier).length;
+                        const ratio = (population && nb > 0) ? population / nb : null;
+                        return { fillColor: couleurAccessibilite(ratio), weight: 1, color: '#555', fillOpacity: 0.5 };
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const nomQuartier = feature.properties.qrt_vlg_ha;
+                        const population = feature.properties.population;
+                        const nb = toutesLesFeatures.filter(e => e.properties.quartier === nomQuartier).length;
+                        const ratio = (population && nb > 0) ? Math.round(population / nb) : 'N/A';
+                        layer.bindPopup(`<strong>${nomQuartier}</strong><br>Population : ${population ?? 'N/A'}<br>Établissements : ${nb}<br>Habitants/établissement : ${ratio}`);
+                    }
+                }).addTo(map);
+            });
+    }
+
+       // --- Accessibilité par quartier (liste triée, du plus au moins sous-équipé) ---
+    function afficherAccessibiliteListe() {
+        fetch("{% url 'quartiers_geojson' %}")
+            .then(r => r.json())
+            .then(data => {
+                const lignes = data.features
+                    .map(f => {
+                        const nom = f.properties.qrt_vlg_ha;
+                        const population = f.properties.population;
+                        const nb = toutesLesFeatures.filter(e => e.properties.quartier === nom).length;
+                        const ratio = (population && nb > 0) ? Math.round(population / nb) : null;
+                        return { nom, population, nb, ratio };
+                    })
+                    .filter(l => l.ratio !== null)
+                    .sort((a, b) => b.ratio - a.ratio)
+                    .slice(0, 10);
+
+                const el = document.getElementById('accessibilite-list');
+                el.innerHTML = lignes.map(l => `
+                    <div class="access-row">
+                        <span>${l.nom}</span>
+                        <span class="access-value" style="color:${couleurAccessibilite(l.ratio)};">${l.population.toLocaleString()} hab.</span>
+                    </div>`).join('');
+            });
+    }
+
+    // --- Écouteurs d'événements ---
+    document.getElementById('recherche').addEventListener('input', afficherEtablissements);
+    document.getElementById('filtre-quartier').addEventListener('change', afficherEtablissements);
+
+    document.querySelectorAll('.legend-row').forEach(row => {
+        row.addEventListener('click', function () {
+            const type = this.dataset.type;
+            if (typesDesactives.has(type)) { typesDesactives.delete(type); this.classList.remove('disabled'); }
+            else { typesDesactives.add(type); this.classList.add('disabled'); }
+            afficherEtablissements();
+        });
+    });
+
+    document.querySelectorAll('#secteur-group button').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('#secteur-group button').forEach(b => b.classList.remove('btn-toggle-active'));
+            this.classList.add('btn-toggle-active');
+            secteurActif = this.dataset.secteur;
+            afficherEtablissements();
+        });
+    });
+
+    document.querySelectorAll('#buffer-group button').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('#buffer-group button').forEach(b => b.classList.remove('btn-toggle-active'));
+            this.classList.add('btn-toggle-active');
+            bufferActif = parseInt(this.dataset.buffer);
+            afficherEtablissements();
+        });
+    });
+
+    document.querySelectorAll('#fond-group button').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('#fond-group button').forEach(b => b.classList.remove('btn-toggle-active'));
+            this.classList.add('btn-toggle-active');
+            if (this.dataset.fond === 'satellite') { map.removeLayer(coucheOSM); coucheSatellite.addTo(map); }
+            else { map.removeLayer(coucheSatellite); coucheOSM.addTo(map); }
+        });
+    });
+
+    document.getElementById('toggle-quartiers').addEventListener('change', function () {
+        afficherLimitesAdministratives(this.checked);
+    });
+    document.getElementById('toggle-accessibilite').addEventListener('change', function () {
+        afficherAccessibilite(this.checked);
+    });
+
+    chargerEtablissements();
+    chargerQuartiersDropdown();
+    afficherAccessibiliteListe();
+
+    const observerRepartition = setInterval(() => {
+        if (toutesLesFeatures.length > 0) { afficherRepartition(); clearInterval(observerRepartition); }
+    }, 200);
+</script>
+{% endblock %}

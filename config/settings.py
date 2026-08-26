@@ -77,9 +77,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'nom_de_ta_base',
-        'USER': 'ton_utilisateur_postgres',
-        'PASSWORD': 'ton_mot_de_passe',
+        'NAME': 'test_fusion_grand_yoff',
+        'USER': 'postgres',
+        'PASSWORD': 'b@ngt@n7',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -126,3 +126,16 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+import os
+
+# 1. Ajout de OSGeo4W au PATH Windows
+os.environ['PATH'] = r'C:\OSGeo4W\bin' + os.pathsep + os.environ['PATH']
+
+# 2. Chemins vers les DLLs
+GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal313.dll'
+GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
+
+# 3. Chemins vers les données de projection (INDISPENSABLE pour la conversion 32628 -> 4326)
+os.environ['PROJ_LIB'] = r'C:\OSGeo4W\share\proj'
+os.environ['GDAL_DATA'] = r'C:\OSGeo4W\share\gdal'

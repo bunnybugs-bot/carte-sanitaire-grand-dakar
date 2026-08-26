@@ -1,0 +1,128 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Carte Sanitaire Grand Yoff{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="icon" type="image/x-icon" href="{% static 'sante/img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --teal-deep: #0B4F6C;
+            --teal-soft: #7FC8D9;
+            --coral: #FF6B5B;
+            --turquoise: #17A2B8;
+            --bg-soft: #EEF3F6;
+            --ink: #1E2A30;
+        }
+        body { font-family: 'Inter', sans-serif; color: var(--ink); }
+        h1, h2, h3, .display-font { font-family: 'Space Grotesk', sans-serif; }
+
+        .navbar { background: var(--teal-deep) !important; }
+        .navbar-brand { font-weight: 700; }
+        .navbar .btn-link:hover { color: var(--teal-soft) !important; }
+
+        .btn-coral { background: var(--coral); color: white; border: none; font-weight: 600; }
+        .btn-coral:hover { background: #e55647; color: white; }
+        .btn-turquoise { background: var(--turquoise); color: white; border: none; font-weight: 600; }
+        .btn-turquoise:hover { background: #148a9c; color: white; }
+
+        footer a.footer-link {
+            color: #b9c9ce;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+        footer a.footer-link:hover { color: var(--teal-soft); }
+        footer h6 { color: white; letter-spacing: 0.02em; }
+        footer .footer-icon {
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            background: rgba(127, 200, 217, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+        footer .footer-icon svg { width: 18px; height: 18px; stroke: var(--teal-soft); }
+        footer .footer-divider { border-color: rgba(255,255,255,0.1); }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100" style="background: var(--bg-soft);">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'accueil' %}">Carte Sanitaire Grand Yoff</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-controls="navMain" aria-expanded="false" aria-label="Ouvrir le menu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMain">
+            <div class="ms-auto d-flex flex-column flex-lg-row">
+                <a href="{% url 'accueil' %}" class="btn btn-link text-white text-decoration-none">Accueil</a>
+                <a href="{% url 'carte' %}" class="btn btn-link text-white text-decoration-none">Carte</a>
+                <a href="{% url 'dashboard' %}" class="btn btn-link text-white text-decoration-none">Statistiques</a>
+            </div>
+        </div>
+    </div>
+</nav>
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="text-light pt-5 pb-4 mt-5" style="background: var(--teal-deep);">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-12 col-md-4">
+                    <div class="footer-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+                    </div>
+                    <h6 class="fw-bold">Carte Sanitaire Grand Yoff</h6>
+                    <p class="small" style="color:#b9c9ce;">
+                        Projet réalisé dans le cadre du module SIG / Développement WebSIG,
+                        Licence 3 Géomatique — Université Iba Der Thiam de Thiès.
+                    </p>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="footer-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z"/></svg>
+                    </div>
+                    <h6 class="fw-bold">Sources des données</h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-1"><a href="https://www.geosenegal.gouv.sn/senegal-infrastructures-de-sante.html" target="_blank" rel="noopener" class="footer-link">GeoSénégal — infrastructures de santé ↗</a></li>
+                        <li class="mb-1"><a href="https://www.ansd.sn/" target="_blank" rel="noopener" class="footer-link">ANSD — recensement de la population ↗</a></li>
+                        <li class="mb-1"><a href="https://www.openstreetmap.org/" target="_blank" rel="noopener" class="footer-link">OpenStreetMap — compléments (QuickOSM) ↗</a></li>
+                        <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="footer-link">© OpenStreetMap contributors ↗</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <div class="footer-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20l-7-7a5 5 0 117-7 5 5 0 117 7l-7 7z"/></svg>
+                    </div>
+                    <h6 class="fw-bold">Contribuer</h6>
+                    <p class="small mb-3" style="color:#b9c9ce;">Vous connaissez un établissement manquant ?</p>
+                    <a href="{% url 'ajouter_etablissement' %}" class="btn btn-turquoise btn-sm">Ajouter un établissement</a>
+                </div>
+            </div>
+
+            <hr class="footer-divider my-4">
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                <p class="small mb-0" style="color:#8ba3ab;">
+                    Données fournies à titre indicatif — à vérifier avant toute utilisation dans un contexte d'urgence réelle.
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'accueil' %}" class="footer-link small">Accueil</a>
+                    <a href="{% url 'carte' %}" class="footer-link small">Carte</a>
+                    <a href="{% url 'dashboard' %}" class="footer-link small">Statistiques</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
