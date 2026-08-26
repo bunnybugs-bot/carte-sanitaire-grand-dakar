@@ -9,7 +9,8 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
+import dj_database_url
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-nves^lt5a*rk3l2#uxed!smn(@p6mhjlwq9+k$394dz9xwz4hd'
+SECRET_KEY = os.environ.get('SECRET_KEY','django-insecure-nves^lt5a*rk3l2#uxed!smn(@p6mhjlwq9+k$394dz9xwz4hd')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG','False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -75,15 +76,25 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'test_fusion_grand_yoff',
-        'USER': 'postgres',
-        'PASSWORD': 'b@ngt@n7',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get(
+            'DATABASE_URL',
+            'postgis://postgres:b@ngt@n7@localhost:5432/test_fusion_grand_yoff'
+        ),
+        engine='django.contrib.gis.db.backends.postgis'
+    )
 }
+
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+#        'NAME': 'test_fusion_grand_yoff',
+#        'USER': 'postgres',
+#        'PASSWORD': 'b@ngt@n7',
+#        'HOST': 'localhost',
+#        'PORT': '5432',
+#   }
+#}
 
 
 # Password validation
@@ -120,14 +131,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import os
+
 
 # 1. Ajout de OSGeo4W au PATH Windows
 os.environ['PATH'] = r'C:\OSGeo4W\bin' + os.pathsep + os.environ['PATH']
